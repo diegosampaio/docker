@@ -1,0 +1,134 @@
+version: "3"
+services:
+  proxy:
+    image: nginx:latest
+    container_name: proxy
+    volumes:
+      - ./configs/proxy/sites-enabled:/etc/nginx/conf.d
+      - ./projetos/:/var/www/html/
+      - ./certs:/certs
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      default:
+        aliases:
+          - estratego.financeiro.site
+          - estratego.sis.site
+          - estratego.portalaluno.site
+          
+    depends_on:
+      - php83
+      - php82
+      - php80
+      - php74
+      - php73
+      - php72
+  mysql:
+    platform: linux/x86_64
+    image: mysql:5.7.22
+    container_name: mysql5
+    environment:
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ROOT_USER: "root"
+      MYSQL_ROOT_PASSWORD: "root"
+    volumes:
+      - ./mysql:/var/lib/mysql
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    command: --sql-mode=''
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadm
+    links:
+      - mysql
+    ports:
+      - 8000:80
+    environment:
+      - PMA_HOST=mysql
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=200000000000
+  php83:
+    build: ./configs/php83/docker-files
+    container_name: php83
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer
+  php82:
+    build: ./configs/php82/docker-files
+    container_name: php82
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer
+  php80:
+    build: ./configs/php80/docker-files
+    container_name: php80
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer
+  php74:
+    build: ./configs/php74/docker-files
+    container_name: php74
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer
+  php73:
+    build: ./configs/php73/docker-files
+    container_name: php73
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer
+  php72:
+    build: ./configs/php72/docker-files
+    container_name: php72
+    links:
+      - mysql
+      - mailhog
+    volumes: 
+      - ./projetos/:/var/www/html/
+      - composer-data:/root/.composer 
+  mailhog:
+    container_name: docker_mailhog
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - 1025:1025
+      - 8025:8025
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./projetos/portainer_data:/data
+    ports:
+      - "8020:9000"
+    restart: unless-stopped
+
+volumes:
+  composer-data:
+  mysql:
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/16
